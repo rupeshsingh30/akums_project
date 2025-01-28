@@ -145,15 +145,36 @@ def prepareDataForDbFun(extracted_data, line_items, file_name):
         )
         insertExtractedData(columns, value)
 
+
+"""
+The `extractionFun` function processes a file by converting it to base64, extracting data with
+retries, checking for specific fields, and preparing the extracted data for a database.
+
+:param file_path: The code you provided seems to be a function for extracting data from a file. It
+appears to involve converting the file to base64, extracting data with retries, and then processing
+the extracted data further
+:return: The function `extractionFun` returns either None or triggers a retry API call based on
+certain conditions related to extracted data.
+"""
+
 def extractionFun(file_path):
-    """
-    Main extraction function that handles file processing and data extraction.
-    """
-    base64_file = convertBase64Fun(file_path)
-    data = extractDataWithRetriesFun(base64_file)
-    data =  data['results'][0]
-    print('all data :',data,"\n\n",len(data))
+    base64_file = convertBase64Fun(file_path)       #convert to base 64 file
+    data = extractDataWithRetriesFun(base64_file)   #retries api calling 
+
+    #key exist or not 'result'
+    try:
+        data =  data['results'][0] 
+    except:
+        timestamp = datetime.now()
+        file_name = os.path.basename(file_path)
+        insertExtractedData(
+            ('timestamp', 'file_name', 'remark'),
+            (timestamp, file_name, 'fail')
+        )
+        return
+    print('data :',data,"\n\n",len(data),sep='  || ')
     
+    # data is none
     if not data:
         timestamp = datetime.now()
         file_name = os.path.basename(file_path)
@@ -163,7 +184,7 @@ def extractionFun(file_path):
         )
         return
 
-    extracted_data = extractInvoiceDataFun(data)
+    extracted_data = extractInvoiceDataFun(data)      #extraction invoice and retrun in dictionary pattern
 
 
     print(extracted_data,">>>>\n\n")
@@ -198,21 +219,6 @@ def extractionFun(file_path):
     print('line items :',line_items,'\n\n')
     file_name = os.path.basename(file_path)
 
-
-
     prepareDataForDbFun(extracted_data, line_items, file_name)
 
-def processFilesInDirectoryFun(input_folder):
-    """
-    Process all files in a given folder.
-    """
-    for file_name in os.listdir(input_folder):
-        file_path = os.path.join(input_folder, file_name)
-        logging.info(f"Processing file: {file_name}")
-        extractionFun(file_path)
-        logging.info('-' * 80)
 
-
-input_folder = r'C:\Users\Admin\Downloads\akums_oce\lohia_new\input'
-# input_folder = r'C:\Users\Admin\Downloads\akums_oce\lohia_new\Invoices'
-processFilesInDirectoryFun(input_folder)
