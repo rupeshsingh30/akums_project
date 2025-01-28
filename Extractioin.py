@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 from datetime import datetime
 from API_trigger import convertBase64Fun, apiTriggerFun
@@ -7,10 +8,10 @@ from DB_operation import insertExtractedData
 # Setup logger
 logging.basicConfig(level=logging.INFO)
 
-def extract_data_with_retries(base64_file, max_retries=3):
-    """
-    Attempt to fetch data from the API with retries on failure.
-    """
+"""
+Attempt to fetch data from the API with retries on failure.
+"""
+def extractDataWithRetriesFun(base64_file, max_retries=3):
     attempts = 0
     data = None
     
@@ -25,10 +26,10 @@ def extract_data_with_retries(base64_file, max_retries=3):
     logging.error("Failed to fetch data after max retries.")
     return None
 
-def extract_invoice_data(data):
-    """
-    Extract all necessary fields from the API response data.
-    """
+"""
+Extract all necessary fields from the API response data.
+"""
+def extractInvoiceDataFun(data):
     extracted_data = {
         'irn_no': data.get('irnNo', ''),
         'ack_no': data.get('ackNo', ''),
@@ -50,22 +51,25 @@ def extract_invoice_data(data):
             'ifsc_no': data.get('bankDetails', {}).get('ifscNo', '')
         },
         'round_off':data.get('roundingOff', ''),
+        'total_invoice':data.get('netPayableAmount', ''),
         'freight_term': '',
-        'place_of_supply': '',
-        'consignee_name': data.get('vendorName', ''),
-        'consignee_gstin': data.get('vendorGSTIN', ''),
-        'consignee_pan': data.get('vendorPAN', ''),
+        'place_of_supply': data.get('placeOfSupply', ''),
+        'consignee_name': data.get('buyerName', ''),
+        'consignee_gstin': data.get('buyerGSTIN', ''),
+        'consignee_pan': data.get('buyerPAN', ''),
         'freight': ''
     }
 
     return extracted_data
 
-def extract_line_items(data):
-    """
-    Extract all line items from the invoice data.
-    """
+
+"""
+Extract all line items from the invoice data.
+"""
+def extractIineItemsFun(data):
     line_items = []
     for line_data in data.get('invoiceItems', []):
+        
         line_item = {
             'description': line_data.get('description', ''),
             'quantity': line_data.get('quantity', ''),
@@ -73,18 +77,21 @@ def extract_line_items(data):
             'tax_rate': data.get('taxableAmount', ''),
             'rate': line_data.get('rate', ''),
             'unit': line_data.get('uom', ''),
-            'amount': line_data.get('totalAmount', ''),
-            'total_tax': data.get('totalTax', '')
+            'amount': line_data.get('taxableAmount', ''),
+            'total_tax': data.get('totalTax', ''),
+            'item_code':line_data.get('itemCode', '')
         }
+
         line_items.append(line_item)
     
     return line_items
 
-def prepare_data_for_db(extracted_data, line_items, file_name):
-    """
-    Prepare the data in the correct format for database insertion.
-    """
+"""
+Prepare the data in the correct format for database insertion.
+"""
+def prepareDataForDbFun(extracted_data, line_items, file_name):
     timestamp = datetime.now()
+ 
     # Creating values for the database insert
     for line_item in line_items:
         value = (
@@ -103,6 +110,7 @@ def prepare_data_for_db(extracted_data, line_items, file_name):
             extracted_data['po_number'],
             extracted_data['po_date'],
             line_item['description'],
+            line_item['item_code'],
             line_item['quantity'],
             line_item['hsn_code'],
             line_item['tax_rate'],
@@ -111,8 +119,7 @@ def prepare_data_for_db(extracted_data, line_items, file_name):
             line_item['amount'],
             line_item['total_tax'],
             extracted_data['round_off'],  # rounding_off
-
-            '',  # total_invoice
+            extracted_data['total_invoice'], # total_invoice
             extracted_data['bank_details']['bank_name'],
             extracted_data['bank_details']['account_no'],
             extracted_data['bank_details']['ifsc_no'],
@@ -126,11 +133,11 @@ def prepare_data_for_db(extracted_data, line_items, file_name):
             file_name,
             'pass'  # remark
         )
-        print('value : ',value)
+        # print('value : ',value)
         columns = (
             'irn_no', 'ack_no', 'ack_date', 'vendor_name', 'vendor_gstin', 'vendor_pan',
             'msme_no', 'drug_license_no', 'invoice_number', 'eway_bill_no', 'invoice_date', 
-            'term_of_payment', 'po_number', 'po_date', 'item_description', 'item_quantity', 
+            'term_of_payment', 'po_number', 'po_date', 'item_description','item_code', 'item_quantity', 
             'hsn_sac_code', 'tax_rate', 'rate', 'unit', 'amount', 'total_tax', 'rounding_off',
             'total_invoice', 'bank_name', 'account_no', 'ifsc_no', 'freight_term', 
             'place_of_supply', 'consignee_name', 'consignee_gstin', 'consignee_pan', 
@@ -143,9 +150,10 @@ def extractionFun(file_path):
     Main extraction function that handles file processing and data extraction.
     """
     base64_file = convertBase64Fun(file_path)
-    data = extract_data_with_retries(base64_file)
-    print('all data :',data,"\n\n")
-
+    data = extractDataWithRetriesFun(base64_file)
+    data =  data['results'][0]
+    print('all data :',data,"\n\n",len(data))
+    
     if not data:
         timestamp = datetime.now()
         file_name = os.path.basename(file_path)
@@ -155,10 +163,11 @@ def extractionFun(file_path):
         )
         return
 
-    extracted_data = extract_invoice_data(data)
+    extracted_data = extractInvoiceDataFun(data)
 
 
-    # print(extracted_data,">>>>\n\n")
+    print(extracted_data,">>>>\n\n")
+    
     # here we define some conditoin base on some fields like irn no,invoince no,e-way bill no,invoice date,item qty,amount,total invoice,
     # extracted_data = {
     #     'irn_no':None,
@@ -173,8 +182,8 @@ def extractionFun(file_path):
         print('\n\n','yessss','\n\n')
 
         base64_file = convertBase64Fun(file_path)
-        data = extract_data_with_retries(base64_file)
-        print('all data :',data,"\n\n")
+        data = extractDataWithRetriesFun(base64_file)
+        data =  data['results'][0]
         if not data:
             timestamp = datetime.now()
             file_name = os.path.basename(file_path)
@@ -184,13 +193,16 @@ def extractionFun(file_path):
             )
             return
         
-    line_items = extract_line_items(data)
+        
+    line_items = extractIineItemsFun(data)
     print('line items :',line_items,'\n\n')
     file_name = os.path.basename(file_path)
 
-    prepare_data_for_db(extracted_data, line_items, file_name)
 
-def process_files_in_directory(input_folder):
+
+    prepareDataForDbFun(extracted_data, line_items, file_name)
+
+def processFilesInDirectoryFun(input_folder):
     """
     Process all files in a given folder.
     """
@@ -200,7 +212,7 @@ def process_files_in_directory(input_folder):
         extractionFun(file_path)
         logging.info('-' * 80)
 
-# Directory path where input files are located
+
 input_folder = r'C:\Users\Admin\Downloads\akums_oce\lohia_new\input'
 # input_folder = r'C:\Users\Admin\Downloads\akums_oce\lohia_new\Invoices'
-process_files_in_directory(input_folder)
+processFilesInDirectoryFun(input_folder)

@@ -2,8 +2,6 @@ from config import *
 import psycopg2
 from psycopg2 import OperationalError
 
-
-
 def dbConnection():
     
     try:    
@@ -21,7 +19,7 @@ def insertExtractedData(columns,values):
     if not conn or not cursor:
         return None
 
-    cursor.execute('''CREATE TABLE IF NOT EXISTS demo_lohia5 (
+    cursor.execute('''CREATE TABLE IF NOT EXISTS akums_db (
     irn_no TEXT,
     ack_no TEXT,
     ack_date TEXT,
@@ -37,6 +35,7 @@ def insertExtractedData(columns,values):
     po_number TEXT,
     po_date TEXT,
     item_description TEXT,
+    item_code TEXT,
     item_quantity TEXT,
     hsn_sac_code TEXT,
     tax_rate TEXT,
@@ -64,7 +63,7 @@ def insertExtractedData(columns,values):
     try:
         col_names = ', '.join(columns)
         value_placeholders = ', '.join(['%s'] * len(columns))
-        query = f"INSERT INTO demo_lohia5 ({col_names}) VALUES ({value_placeholders})"
+        query = f"INSERT INTO akums_db ({col_names}) VALUES ({value_placeholders})"
         cursor.execute(query, values)
         conn.commit() 
         print('inserted')
@@ -73,7 +72,5 @@ def insertExtractedData(columns,values):
 
 
 
-# insertExtractedData(
-#             ('timestamp', 'file_name', 'remark'),
-#             ('timestamp', 'file_name', 'fail')
-#         )
+
+
