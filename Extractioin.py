@@ -5,6 +5,7 @@ from datetime import datetime
 from API_trigger import convertBase64Fun, apiTriggerFun
 from DB_operation import insertExtractedData
 
+
 # Setup logger
 logging.basicConfig(level=logging.INFO)
 
@@ -54,9 +55,9 @@ def extractInvoiceDataFun(data):
         'total_invoice':data.get('netPayableAmount', ''),
         'freight_term': '',
         'place_of_supply': data.get('placeOfSupply', ''),
-        'consignee_name': data.get('buyerName', ''),
-        'consignee_gstin': data.get('buyerGSTIN', ''),
-        'consignee_pan': data.get('buyerPAN', ''),
+        'buyer_name': data.get('buyerName', ''),
+        'buyer_gstin': data.get('buyerGSTIN', ''),
+        'buyer_pan': data.get('buyerPAN', ''),
         'freight': ''
     }
 
@@ -86,14 +87,83 @@ def extractIineItemsFun(data):
     
     return line_items
 
+
+# def expectedVendor():
+
+    
+
+
+
+# def poNmberDateAndItemcode(description,extracted_data['po_number'],extracted_data['po_date'],line_item['description']):
+def poNmberDateAndItemcode(description,po_number,po_date,item_code):
+
+    
+
+    # po number 
+    # if re.search(r'(?si)po\sno.*?[0-9]+|p\.o\.\sno(\.\s|\s)[0-9]+',description):
+    if re.search(r'(?si)po\sno.*?[0-9]+|p\.o\.\sno.*?[0-9]+',description):
+        po_number = re.search(r'(?si)po\sno.*?[0-9]+|p\.o\.\sno(\.\s|\s)[0-9]+',description).group()
+        po_number = re.search(r'(?si)[0-9]+',po_number).group()
+    else:
+        po_number = po_number
+    print('po_number :',po_number,sep='  ||  ')
+
+    # po date
+    if re.search(r'(?si)po\sno.*?\d+(\.|\-)\d+(\.|\-)\d+',description):
+        po_date = re.search(r'(?si)po\sno.*?\d+(\.|\-)\d+(\.|\-)\d+',description).group()
+        po_date = re.search(r'(?si)\d+(\.|\-)\d+(\.|\-)\d+',po_date).group()
+
+    else:
+        po_date = po_date
+    print('po date :',po_date,sep=' || ')
+
+
+    # item code / material number
+    if re.search(r'(?si)(material|mat)\sno.*?[0-9]+',description):
+        item_code = re.search(r'(?si)(material|mat)\sno.*?[0-9]+',description).group()
+        item_code = re.search(r'(?si)[0-9]+',item_code).group()
+
+    else:
+        item_code = item_code 
+    print('item_code :',item_code,sep=' || ')
+    
+
+    return po_number,po_date,item_code 
+
+
 """
 Prepare the data in the correct format for database insertion.
 """
 def prepareDataForDbFun(extracted_data, line_items, file_name):
     timestamp = datetime.now()
- 
+
+    expected_vendor_list = [
+        'ALLIED LABELS PVT.LTD',
+        'CAREWELL GLASS & AMPOULES PVT. LTD.',
+        'SIGNET EXCIPIENTS PRIVATE LIMITED',
+        'Vinayak Enterprises',
+        'Vinayak Enterprises (Roorkee)',
+        'Laxmi Print N Pack',
+        'METROCHEM API PRIVATE LIMITED UNIT-I',
+        'CHIPQO ENTERPRISES 2023-24',
+        'ONYX BIOTEC PVT. LTD.',
+        'TORIOX SERGUSA PACKAGING PRIVATE LIMITED',
+        'M/s Laxmi Print N Pack',
+        'COVALENT LABORATORIES PRIVATE LIMITED'
+    ]
+    expected_vendor_list = [vendor.lower() for vendor in expected_vendor_list]
+
+
+
     # Creating values for the database insert
     for line_item in line_items:
+
+        if extracted_data['vendor_name'].lower() in expected_vendor_list:
+            print('condition satasfied >>>>')
+            extracted_data['po_number'],extracted_data['po_date'],line_item['item_code'] = poNmberDateAndItemcode(line_item['description'],extracted_data['po_number'],extracted_data['po_date'],line_item['item_code'])
+        
+        
+
         value = (
             extracted_data['irn_no'],
             extracted_data['ack_no'],
@@ -125,9 +195,9 @@ def prepareDataForDbFun(extracted_data, line_items, file_name):
             extracted_data['bank_details']['ifsc_no'],
             extracted_data['freight_term'],
             extracted_data['place_of_supply'],
-            extracted_data['consignee_name'],
-            extracted_data['consignee_gstin'],
-            extracted_data['consignee_pan'],
+            extracted_data['buyer_name'],
+            extracted_data['buyer_gstin'],
+            extracted_data['buyer_pan'],
             extracted_data['freight'],
             timestamp,
             file_name,
@@ -140,7 +210,7 @@ def prepareDataForDbFun(extracted_data, line_items, file_name):
             'term_of_payment', 'po_number', 'po_date', 'item_description','item_code', 'item_quantity', 
             'hsn_sac_code', 'tax_rate', 'rate', 'unit', 'amount', 'total_tax', 'rounding_off',
             'total_invoice', 'bank_name', 'account_no', 'ifsc_no', 'freight_term', 
-            'place_of_supply', 'consignee_name', 'consignee_gstin', 'consignee_pan', 
+            'place_of_supply', 'buyer_name', 'buyer_gstin', 'buyer_pan', 
             'freight', 'timestamp', 'file_name', 'remark'
         )
         insertExtractedData(columns, value)
