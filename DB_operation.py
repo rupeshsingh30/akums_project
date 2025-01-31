@@ -7,7 +7,7 @@ def dbConnection():
     try:    
         conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT)
         cursor = conn.cursor()
-        print('db connected')
+        # print('db connected')
         return conn, cursor
     except OperationalError as e:
         print(f"Error connecting to the database: {e}")
@@ -50,9 +50,9 @@ def insertExtractedData(columns,values):
     ifsc_no TEXT,
     freight_term TEXT,
     place_of_supply TEXT,
-    consignee_name TEXT,
-    consignee_gstin TEXT,
-    consignee_pan TEXT,
+    buyer_name TEXT,
+    buyer_gstin TEXT,
+    buyer_pan TEXT,
     freight TEXT,
     timestamp TEXT,
     file_name TEXT,
@@ -73,4 +73,25 @@ def insertExtractedData(columns,values):
 
 
 
+
+# conn, cursor = dbConnection()
+
+# query1 = f"select distinct(file_name) from akums_db"
+
+# cursor.execute(query1)
+# a = cursor.fetchall()
+# print(a)
+# ba=[]
+# for i in a:
+#     print(i,i[0],sep=' || ')
+#     ba.append(i[0])
+
+# import os
+# for file1 in os.listdir(r"C:\Users\Admin\Downloads\akums_oce\lohia_new\pass"):
+#     # print(file1)
+
+#     if file1 in ba:
+#         continue
+#     else:
+#         print(file1)
 
