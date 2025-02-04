@@ -33,11 +33,11 @@ def apiTriggerFun(filebase64):
     sample = {
         "validate": False,
         "settings": {
-            "dpi": 300,
-            "pages": "1-500",
+            "dpi": 500,
+            "pages": "1-10",
             "ocr": {
                     "extract": True,
-                    "multilingual": False,
+                    "multilingual": True,
                     "fields": { "extract": False, "filter": False, "model": "engine3" },
                     "table": { "extract": True, "include": True, "validate": False, "json": True },
                     "paragraphs": { "json": True },

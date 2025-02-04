@@ -54,7 +54,8 @@ def extractInvoiceDataFun(data):
         'round_off':data.get('roundingOff', ''),
         'total_invoice':data.get('netPayableAmount', ''),
         'freight_term': '',
-        'place_of_supply': data.get('placeOfSupply', ''),
+        # 'place_of_supply': data.get('placeOfSupply', ''),
+        'place_of_supply': data.get('transportDetails', {}).get('placeOfSupply', ''),
         'buyer_name': data.get('buyerName', ''),
         'buyer_gstin': data.get('buyerGSTIN', ''),
         'buyer_pan': data.get('buyerPAN', ''),
@@ -70,17 +71,23 @@ Extract all line items from the invoice data.
 def extractIineItemsFun(data):
     line_items = []
     for line_data in data.get('invoiceItems', []):
+
+        item_code = line_data.get('itemCode','')
+        if not item_code:  # Checks if item_code is None or empty
+            item_code = line_data.get('materialCode', '')
         
         line_item = {
             'description': line_data.get('description', ''),
             'quantity': line_data.get('quantity', ''),
             'hsn_code': line_data.get('hsnSac', ''),
-            'tax_rate': data.get('taxableAmount', ''),
+            'tax_rate': line_data.get('taxableAmount', ''),
             'rate': line_data.get('rate', ''),
             'unit': line_data.get('uom', ''),
-            'amount': line_data.get('taxableAmount', ''),
+            # 'amount': line_data.get('taxableAmount', ''),
+            'amount': line_data.get('totalAmount', ''),
             'total_tax': data.get('totalTax', ''),
-            'item_code':line_data.get('itemCode', '')
+            # 'item_code':line_data.get('itemCode', '')
+            'item_code':item_code
         }
 
         line_items.append(line_item)
@@ -162,7 +169,8 @@ def prepareDataForDbFun(extracted_data, line_items, file_name):
             print('condition satasfied >>>>')
             extracted_data['po_number'],extracted_data['po_date'],line_item['item_code'] = poNmberDateAndItemcode(line_item['description'],extracted_data['po_number'],extracted_data['po_date'],line_item['item_code'])
         
-        
+        if extracted_data['place_of_supply'] == {}:
+            extracted_data['place_of_supply'] = ''
 
         value = (
             extracted_data['irn_no'],
@@ -255,8 +263,6 @@ def extractionFun(file_path):
         return
 
     extracted_data = extractInvoiceDataFun(data)      #extraction invoice and retrun in dictionary pattern
-
-
     print(extracted_data,">>>>\n\n")
     
     # here we define some conditoin base on some fields like irn no,invoince no,e-way bill no,invoice date,item qty,amount,total invoice,
@@ -275,6 +281,7 @@ def extractionFun(file_path):
         base64_file = convertBase64Fun(file_path)
         data = extractDataWithRetriesFun(base64_file)
         data =  data['results'][0]
+        print('data :',data,"\n\n",len(data),sep='  || ')
         if not data:
             timestamp = datetime.now()
             file_name = os.path.basename(file_path)
@@ -284,7 +291,10 @@ def extractionFun(file_path):
             )
             return
         
-        
+        extracted_data = extractInvoiceDataFun(data)      #extraction invoice and retrun in dictionary pattern
+        print(extracted_data,">>>>\n\n")
+
+    
     line_items = extractIineItemsFun(data)
     print('line items :',line_items,'\n\n')
     file_name = os.path.basename(file_path)

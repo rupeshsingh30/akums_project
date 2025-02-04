@@ -19,7 +19,7 @@ def insertExtractedData(columns,values):
     if not conn or not cursor:
         return None
 
-    cursor.execute('''CREATE TABLE IF NOT EXISTS akums_db (
+    cursor.execute('''CREATE TABLE IF NOT EXISTS akums_db1 (
     irn_no TEXT,
     ack_no TEXT,
     ack_date TEXT,
@@ -63,7 +63,7 @@ def insertExtractedData(columns,values):
     try:
         col_names = ', '.join(columns)
         value_placeholders = ', '.join(['%s'] * len(columns))
-        query = f"INSERT INTO akums_db ({col_names}) VALUES ({value_placeholders})"
+        query = f"INSERT INTO akums_db1 ({col_names}) VALUES ({value_placeholders})"
         cursor.execute(query, values)
         conn.commit() 
         print('inserted')
