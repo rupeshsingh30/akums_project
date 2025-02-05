@@ -83,7 +83,7 @@ def extractIineItemsFun(data):
             'tax_rate': line_data.get('taxableAmount', ''),
             'rate': line_data.get('rate', ''),
             'unit': line_data.get('uom', ''),
-            # 'amount': line_data.get('taxableAmount', ''),
+            'taxable_amount': line_data.get('taxableAmount', ''),
             'amount': line_data.get('totalAmount', ''),
             'total_tax': data.get('totalTax', ''),
             # 'item_code':line_data.get('itemCode', '')
@@ -103,9 +103,6 @@ def extractIineItemsFun(data):
 
 # def poNmberDateAndItemcode(description,extracted_data['po_number'],extracted_data['po_date'],line_item['description']):
 def poNmberDateAndItemcode(description,po_number,po_date,item_code):
-
-    
-
     # po number 
     # if re.search(r'(?si)po\sno.*?[0-9]+|p\.o\.\sno(\.\s|\s)[0-9]+',description):
     if re.search(r'(?si)po\sno.*?[0-9]+|p\.o\.\sno.*?[0-9]+',description):
@@ -171,6 +168,10 @@ def prepareDataForDbFun(extracted_data, line_items, file_name):
         
         if extracted_data['place_of_supply'] == {}:
             extracted_data['place_of_supply'] = ''
+
+
+        if line_item['amount']==extracted_data['total_invoice']:
+            line_item['amount'] == line_item['taxable_amount']
 
         value = (
             extracted_data['irn_no'],
